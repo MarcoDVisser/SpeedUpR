@@ -1,6 +1,6 @@
 # SpeedUpR
 
-Tutorial Code from PLOS Computation Biology Educational Piece on Efficiency in R. The paper is currently in press, and this page will be updated once the tutorial has been released by PLOS.
+Tutorial Code from PLOS Computation Biology Educational Piece on Efficiency in R. [Download the open access paper](http://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1004140).
 
 Speeding up ecological and evolutionary computations in R; essentials of high performance computing for biologists.
 ---
