@@ -11,3 +11,6 @@ Computation has become a critical component of research in biology. A risk has e
 ## The online code files from S1 Text
 
 Find all code examples from the S1 text in the folder /R or click [here](https://github.com/MarcoDVisser/SpeedUpR/tree/master/R).
+
+## Acknowledgements
+As PLOS Computational Biology did not allows us to thank to anonymous reviewers in the above manuscript, I would like to thank them here. Their thoughtful comments and input were very valuable, and resulted in a superiour paper. We wish that PLOS would not take such a stance against gratitute.  
