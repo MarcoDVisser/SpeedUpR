@@ -4,6 +4,7 @@
 \usepackage{url}     % I want to ut urls in the text and dont want latex complaining
 
 \usetheme{Montpellier}
+\usecolortheme{dolphin}
 
 \setbeamertemplate{navigation symbols}{} 
 
