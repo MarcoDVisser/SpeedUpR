@@ -3,6 +3,16 @@
 \usepackage{hyperref} % I want to add functioning url references,f and link within the doc.
 \usepackage{url}     % I want to ut urls in the text and dont want latex complaining
 
+\usetheme{Montpellier}
+
+\setbeamertemplate{navigation symbols}{} 
+
+% and the following four lines for debugging
+%\documentclass[12pt]{article}
+%\renewenvironment{frame}
+%{\Large \newpage}
+%{\phantom{X}}
+
 \begin{document}
 <<setup, include=FALSE>>=
 # smaller font size for chunks
