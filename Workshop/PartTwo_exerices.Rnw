@@ -1,0 +1,53 @@
+% Beamer slide for Speeding up R workshop 
+\documentclass{beamer}
+\usepackage{hyperref} % I want to add functioning url references,f and link within the doc.
+\usepackage{url}     % I want to ut urls in the text and dont want latex complaining
+
+\begin{document}
+<<setup, include=FALSE>>=
+# smaller font size for chunks
+opts_chunk$set(size = 'footnotesize')
+@
+
+\title{Speeding Up R: When is it worthwhile?}
+\author{Marco D. Visser \and Sean McMahon \and Caspar Hallmann}
+
+\maketitle
+
+% when using knitr: 
+% use the option [fragile] for frames containing code output!
+
+\begin{frame}[fragile]
+This presentation, with all \textbf{knitr} code examples is available at 
+\href{https://github.com/MarcoDVisser/SpeedUpR}{github.com/MarcoDVisser/SpeedUpR}
+
+<<boring-random>>=
+set.seed(1121)
+(x=rnorm(20))
+mean(x);var(x)
+@
+\end{frame}
+
+\begin{frame}[fragile]
+The first element of \texttt{x} is \Sexpr{x[1]}. Boring boxplots
+and histograms recorded by the PDF device:
+
+<<boring-plots, fig.width=5, fig.height=5, out.width='.45\\linewidth', fig.show='hold'>>=
+## two plots side by side (option fig.show='hold')
+boxplot(x)
+hist(x,main='')
+@
+\end{frame}
+
+
+\begin{frame}[fragile]
+\begin{equation}
+T_{i} = (1-\alpha)T_{o} + \frac{\alpha T_{o}}{I} 
+\end{equation}
+
+\begin{equation}
+S =  \frac{1}{(1-\alpha)+ \alpha /I} 
+\end{equation}
+\end{frame}
+
+\end{document}
