@@ -4,7 +4,7 @@
 
 -   [Tutorial code](#tutorial-code)
     -   [Abstract](#Abstract)
-    -   [Code](#the-online-code-files-from-s1-text)
+    -   [The online code files](#the-online-code-files-from-s1-text)
 -   [Workshop](#workshop)
     -   [code](#code)
     -   [presentations](#presentations)
