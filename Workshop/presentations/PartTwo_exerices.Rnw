@@ -1,0 +1,414 @@
+% Beamer slide for Speeding up R workshop 
+\documentclass{beamer}
+\usepackage{hyperref} % I want to add functioning url references,f and link within the doc.
+\usepackage{url}     % I want to ut urls in the text and dont want latex complaining
+
+\usetheme{Montpellier}
+\usecolortheme{dolphin}
+
+\setbeamertemplate{navigation symbols}{} 
+
+% and the following four lines for debugging
+%\documentclass[12pt]{article}
+%\renewenvironment{frame}
+%{\Large \newpage}
+%{\phantom{X}}
+
+\begin{document}
+<<setup, include=FALSE>>=
+# smaller font size for chunks
+opts_chunk$set(size = 'footnotesize')
+@
+
+\title{Speeding Up R: When is it worthwhile?}
+\author{Marco D. Visser \and Sean McMahon \and Caspar Hallmann}
+
+\maketitle
+
+% when using knitr: 
+% use the option [fragile] for frames containing code output!
+
+
+\begin{frame}[fragile]{Workshop schedule}
+\begin{enumerate}
+\item General introduction
+\item \textit{Identifying whether and what to optimize}
+\item Break out groups
+\end{enumerate}
+\end{frame}
+
+
+\begin{frame}[fragile]
+
+\begin{block}{Obligatory Donald Knuth quote}
+\textit{"We should forget about small inefficiencies, say about 97\% of the time: premature optimization is the root of all evil"
+}
+\\
+
+{\footnotesize - Donald Knuth (1974). "Structured Programming with go to Statements". ACM Journal Computing Surveys 6 (4): 268.}
+
+
+\end{block}
+\end{frame}
+
+
+\begin{frame}[fragile]{Best coding practices}
+
+\begin{block}
+
+\begin{enumerate}
+\item Correct code. Start with easy to debug R code, don't worry about efficiency.
+
+\item Too slow? Start profiling your program and calculate/guesstimate your expected gains ($aprof$).
+
+\item Found a bottleneck? Confirm optimizing is worthwhile, then look for a pure R solution (greatest returns).
+
+\begin{itemize}\item Confirm new version is correct. \end{itemize} 
+
+\item Still not satisfied? Can your program run in parallel? 
+
+\begin{itemize}\item Confirm new version is correct. \end{itemize} 
+
+\item Only when all else fails: refactor. Rewrite certain key parts in C, C++ or Fortran.
+
+\begin{itemize}\item Confirm new version is correct. \end{itemize} 
+
+\end{enumerate}
+
+\end{block}
+
+\end{frame}
+
+\begin{frame}[fragile]
+This presentation, with all \textbf{knitr} code examples is available at 
+\href{https://github.com/MarcoDVisser/SpeedUpR}{github.com/MarcoDVisser/SpeedUpR}
+
+\end{frame}
+
+
+\begin{frame}[fragile]{How fast is my code?}
+\begin{itemize}
+\item Simple function
+<<IQ1, eval=TRUE,tidy=FALSE>>=
+ IQ1 <- function(N,r) {
+   for (i in 1:r) {
+     for (j in 1:N) { N/(1+N) }
+     }
+  }
+@
+\item How long does it take (time in seconds)?
+<<IQ1timing, eval=TRUE,tidy=FALSE>>=
+system.time(IQ1(100000,10))  
+@
+
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\begin{itemize}
+\item This is calculated from difference of proc.time() output
+<<IQ1proctime, eval=TRUE,tidy=FALSE,size="tiny">>=
+proc.time()
+IQ1(100000,10)
+proc.time()
+@
+
+\item When comparing functions note: timing is random, for various reasons.
+<<IQ1time2, eval=TRUE,tidy=FALSE,size="tiny">>=
+system.time(IQ1(100000,10))  
+system.time(IQ1(100000,10))  
+ @
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{More precise timing}
+\begin{itemize}
+\item microbenchmark() in microbenchmark package 
+\begin{itemize}
+\item Runs the expression multiple times to reduce variation
+\item default is 100 times
+\end{itemize}
+<<IQmicrobenchmark, eval=TRUE,size="tiny",tidy=FALSE>>=
+ IQ2 <- function(N,r) {
+   for (i in 1:r) {
+     for (j in 1:N) { (((((N/(1+N)))))) }
+     }
+  }
+
+require(microbenchmark)
+microbenchmark(IQ1(100000,10),IQ2(100000,10), times=5)
+@
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Basic code tests}
+\begin{itemize}
+\item Basic function: all.equal() \& identical() 
+\item Test driven development "testthat" or "RUnit".
+\end{itemize}
+
+<<testing, eval=TRUE,tidy=FALSE>>=
+x<-c(1,2,3,4,5)
+identical(mean(x),sum(x)/length(x))
+
+y<-data.frame(x=x,y=x^2)
+
+all.equal(colMeans(y),apply(y,2,mean))
+
+ @
+
+\end{frame}
+
+
+
+
+\begin{frame}[fragile]
+
+{\large \textbf{Exercise 1: A bootstrap problem}}
+
+We have a moderately large biodiversity dataset, with 750 000 records
+(modelled after Hennekens \& Schaminee, 2001) of species richness.
+
+\begin{itemize}
+\item 750 plots at 1000 different sites
+\end{itemize}
+
+\textbf{Goal:}  calculate 10 000 bootstrapped estimates of site-specific species richness v.s. overall mean species richness.
+
+
+<<Bootstrapsetup, eval=FALSE,tidy=FALSE>>=
+## OnlineRcode17.R
+N<-7.5*10^2 #Number of records per site
+
+S<-1000 # Number of sites
+BioData<-data.frame(S=rpois(N*S,15),
+                    site=as.factor(rep(1:S,N)))
+@
+
+\end{frame}
+
+\begin{frame}[fragile]
+Using the package boot (in base).
+<<booterror, eval=FALSE, rexample=TRUE>>=
+## OnlineRcode18.R
+require(boot)
+R<-10000 # number of bootstrap resamples
+SiteMeans<-function(x,d,){
+  tapply(x$S[d],x$site[d],mean)-mean(x)
+}
+BtResults<-boot(BioData,SiteMeans,R)
+@
+
+Error (R 3.1.0.):
+\begin{verbatim}
+Error: cannot allocate vector of size 55.9 Gb
+\end{verbatim}
+
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+
+Starting code:
+
+<<bootstrap1>>=
+## OnlineRcode19.R
+
+##Naive bootstrap function in R
+NaiveBoot<-function(x,R){  
+  results<-NULL
+	for(i in 1:R){
+  	index<-sample(seq_len(nrow(x)),replace=TRUE)
+	  results<-rbind(results,
+	  tapply(x$S[index],x$site[index],
+	  function(X) mean(X)-mean(x)))
+	}
+	return(results)
+}
+
+@
+
+\end{frame}
+
+
+
+\begin{frame}[fragile]
+
+Tip: always optimize a smaller problem.
+
+<<bootstrap2,eval=FALSE>>=
+## OnlineRcode20.R
+
+## make a small subset of the data to work with
+subBioData<-BioData[1:7.5e4,]
+
+# 10% of the 10 000 resamples
+subR<-1000
+@
+
+\end{frame}
+
+\begin{frame}[fragile]
+{\large Exercise: Optimize the function \textit{NaiveBoot}}
+\begin{enumerate}
+\item Profile the function 
+\begin{itemize}
+\item use ?Rprof
+\item use ?aprof from the aprof package  
+\item read section 1.3 (page 6) of the tutorial
+\end{itemize}
+\item Identify the largest bottleneck 
+\item determine if optimization is worthwhile
+\item Improve only the largest bottleneck
+\end{enumerate}
+{\tiny (if more speed is needed repeat step 1 - 4)}
+\end{frame}
+
+\begin{frame}[fragile]
+\textbf{Amdahl' s law}
+\\
+\begin{equation}
+T_{i} = (1-\alpha)T_{o} + \frac{\alpha T_{o}}{I} 
+\end{equation}
+where $T_{i}$ is run time after optimization improves speed of a section of code by factor I, when this code section took a fraction $\alpha$ of the original run time. Note that equation 1 reduces to:
+\begin{equation}
+S =  \frac{1}{(1-\alpha)+ \alpha /I} 
+\end{equation}
+where $S$ is the maximal theoretical speed-up at current scaling. 
+\end{frame}
+
+\begin{frame}[fragile]{Step 1: profiling}
+A possible solution:
+
+<<ProfileNaiveboot, eval=FALSE>>=
+## OnlineRcode21.R
+
+## reload our program so everything matches up exactly 
+source("NaiveBoot.R")
+
+## Switch on R's profiler 
+Rprof(file="NaiveBoot.out",line.profiling =TRUE)
+
+## set the random seed so we can compare results
+## later.
+set.seed(123)
+
+## Run NaiveBoot on a subset of data 1000 times
+ResultsNB<-NaiveBoot(subBioData,subR)
+
+## stop profiling
+Rprof(append=F)
+@
+
+\end{frame}
+
+\begin{frame}[fragile]{Step 1: profiling}
+<<Rprof, eval=TRUE,tidy=FALSE,size="tiny">>=
+summaryRprof("NaiveBoot.out")
+@
+\end{frame}
+
+
+
+\begin{frame}[fragile]{Step 1: profiling}
+<<AprofNaiveboot, eval=FALSE,tidy=FALSE>>=
+## OnlineRcode22.R
+
+## Load Amdahl's profiler
+require(aprof)
+
+## make an object of the aprof class
+NaiveBootAprof <- aprof("NaiveBoot.R","NaiveBoot.out")
+
+## Plot the execution time per line
+plot(NaiveBootAprof)
+@
+\end{frame}
+
+
+\begin{frame}[fragile]{Step 1: profiling}
+<<AprofNaivebootPlot, fig.width=3.5,fig.height=2.6,eval=TRUE,tidy=FALSE,echo=FALSE>>=
+## OnlineRcode22.R
+
+## Load Amdahl's profiler
+require(aprof)
+
+## make an object of the aprof class
+NaiveBootAprof <- aprof("NaiveBoot.R","NaiveBoot.out")
+
+## Plot the execution time per line
+plot(NaiveBootAprof)
+@
+\end{frame}
+
+\begin{frame}[fragile]{Step 1: Is it worthwhile}
+<<NaiveBootrun, echo=TRUE,eval=TRUE,size="tiny">>=
+## OnlineRcode23.R
+summary(NaiveBootAprof)
+@
+\end{frame}
+
+\begin{frame}[fragile]{Step 1: need more detail?}
+<<NaiveBootrunTargeted, echo=TRUE,eval=TRUE,size="tiny">>=
+L6<-targetedSummary(target = 6,NaiveBootAprof, findParent = TRUE)
+L8<-targetedSummary(target = 8,NaiveBootAprof, findParent = TRUE)
+head(L6)
+head(L8)
+@
+\end{frame}
+
+\begin{frame}[fragile]{Potential solution 1}
+<<DefineLessNaiveboot, eval=TRUE,rexample=TRUE>>=
+## OnlineRcode24.R
+## Less naive
+LessNaiveBoot<-function(x,R){
+  avg<-mean(x$S) 
+   
+  results<-array(dim=c(R,nlevels(x$site)))
+	for(i in 1:R){
+  	index<-sample(seq_len(nrow(x)),replace=TRUE)
+	  results[i,]<-tapply(x$S[index],x$site[index],
+	  function(X) mean(X)-avg)
+	}
+	return(results)
+}
+
+@
+
+\end{frame}
+
+
+\begin{frame}[fragile]{Potential solution 2}
+<<DefinefastBoot, eval=TRUE,rexample=TRUE>>=
+## OnlineRcode31.R
+
+## Even Less naive
+fastBoot<-function(x,R){
+  avg<-mean(x$S)
+   
+  results<-array(dim=c(R,nlevels(x$site)))
+	for(i in 1:R){
+  	index<-sample(seq_len(nrow(x)),replace=TRUE)
+	  results[i,]<-tapply(x$S[index],x$site[index],
+	  function(X) mean.default(X)-avg)
+	}
+	return(results)
+}
+
+
+@
+
+\end{frame}
+
+
+
+\begin{frame}[fragile]{Workshop schedule}
+\begin{enumerate}
+\item General introduction
+\item Identifying whether and what to optimize
+\item \textit{Break out groups}
+\end{enumerate}
+\end{frame}
+
+\end{document}
