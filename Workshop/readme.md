@@ -4,7 +4,7 @@
 Speeding up ecological and evolutionary computations in R; essentials of high performance computing for biologists.
 ---
 
-Supporting files for the various workshops on code efficiency given at EvoDemos, BES and ESA. 
+*Supporting files for the various workshops on code efficiency given at EvoDemos, BES and ESA.*
 
 The workshops reviewed common challenges to computational efficiency for typical ecological problems, 
 offer solutions on a sliding scale of time and coding investment but especially demonstrate how to determine
@@ -15,3 +15,5 @@ The workshop is based on a recent published educational piece on high performanc
 
 This guthub repository contains the main exercise slides as latex-beamer-knitr presenations.
 Therefore, all code shown in the .pdf files are embedded in the .Rnw files.   
+
+Download the presentations form [here](https://github.com/MarcoDVisser/SpeedUpR/tree/master/Workshop/presentations)
