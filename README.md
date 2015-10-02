@@ -29,6 +29,6 @@ As PLOS Computational Biology did not allows us to thank to anonymous reviewers 
 Supporting material from the EvoDemos 2015 workshop on code efficiency. 
 
 ## Code
-Find all code exercises here. 
+Find all code exercises [here](https://github.com/MarcoDVisser/SpeedUpR/tree/master/R). 
 ## Presentations
 Presentations with exercies are archived [here](https://github.com/MarcoDVisser/SpeedUpR/tree/master/Workshop). 
