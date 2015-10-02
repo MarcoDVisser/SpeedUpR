@@ -31,4 +31,4 @@ Supporting material from the EvoDemos 2015 workshop on code efficiency.
 ## Code
 Find all code exercises here. 
 ## Presentations
-Presentations with exercies are archived here. 
+Presentations with exercies are archived [here](https://github.com/MarcoDVisser/SpeedUpR/tree/master/Workshop). 
