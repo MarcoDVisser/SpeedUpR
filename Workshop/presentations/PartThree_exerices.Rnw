@@ -1,0 +1,211 @@
+% Beamer slide for Speeding up R workshop 
+\documentclass{beamer}
+\usepackage{hyperref} % I want to add functioning url references,f and link within the doc.
+\usepackage{url}     % I want to ut urls in the text and dont want latex complaining
+
+\usetheme{Montpellier}
+\usecolortheme{dolphin}
+
+\setbeamertemplate{navigation symbols}{} 
+
+% and the following four lines for debugging
+%\documentclass[12pt]{article}
+%\renewenvironment{frame}
+%{\Large \newpage}
+%{\phantom{X}}
+
+\begin{document}
+<<setup, include=FALSE>>=
+# smaller font size for chunks
+opts_chunk$set(size = 'footnotesize')
+@
+
+\title{Speeding Up R: Break out groups}
+\author{Marco D. Visser \and Sean McMahon \and Caspar Hallmann}
+
+\maketitle
+
+% when using knitr: 
+% use the option [fragile] for frames containing code output!
+
+
+\begin{frame}[fragile]{Workshop schedule}
+\begin{enumerate}
+\item General introduction
+\item Identifying whether and what to optimize
+\item \textit{Break out groups}
+\end{enumerate}
+\end{frame}
+
+
+\begin{frame}[fragile]{Workshop schedule}
+\begin{enumerate}
+\item Parallel algorithms 101
+\item Extending R with C
+\item Own code
+\end{enumerate}
+\end{frame}
+
+\begin{frame}[fragile]{I: Parallel algorithms 101}
+\large Exercises 
+\begin{enumerate}
+\item Review pitfalls (section 3)
+\item How many cores do I have? (section 3.3)
+\item Random numbers (section 3.4)
+\item Build parallel bootstrap (section 3.4 or 3.5)
+
+\end{enumerate}
+\end{frame}
+
+\begin{frame}[fragile]{II: Extending R with C}
+\large Exercises 
+
+\begin{enumerate}
+\item .C interface (section 5) 
+\item .Call interface (section 6.2)
+\item SEXP (section 6.2.2)
+\item PROTECT, UNPROTECT and gc() (sect. 6.2.2)
+\item random number generation and other functions (sect. 6.2.3)
+\end{enumerate}
+
+\large Wrap up: Tips
+\begin{enumerate}
+\item tips on finding source code
+\item "inline"
+\end{enumerate}
+\end{frame}
+
+\begin{frame}[fragile]{III: Own code}
+\begin{enumerate}
+\item Use smaller problem 
+\item Profile and find bottlenecks
+\item Discuss
+\item Repeat 2 \& 3 if needed
+\end{enumerate}
+\tiny{remember to save all intermediate steps}
+\end{frame}
+
+\begin{frame}[fragile]{II: Wrap Up}
+\large{Tips on finding source code}
+<<sourcecode,eval=FALSE>>=
+page(”lm”)
+@
+
+\tiny{
+\begin{verbatim}
+   }
+    else {
+        x <- model.matrix(mt, mf, contrasts)
+        z <- if (is.null(w)) 
+            lm.fit(x, y, offset = offset, singular.ok = singular.ok, 
+                ...)
+        else lm.wfit(x, y, w, offset = offset, singular.ok = singular.ok, 
+            ...)
+    }
+  
+\end{verbatim}
+}
+
+\end{frame}
+
+\begin{frame}[fragile]{II: Wrap Up}
+\large{Tips on finding source code}
+<<sourcecode2>>=
+sum
+@
+
+\textit{.Primitives} and \textit{.Internals} are found in /src/main/names.c
+
+\end{frame}
+
+\begin{frame}[fragile]{II: Wrap Up}
+\large{Tips on finding source code}
+Package pryr
+
+\tiny{
+<<pryr>>=
+pryr::show_c_source(.Primitive("sum"))
+@
+}
+
+Only works for \textit{.Primitives} and \textit{.Internals} 
+\end{frame}
+
+\begin{frame}[fragile]{II: Wrap Up}
+
+Print the function \textit{cor}
+
+\begin{verbatim}
+   else if (na.method != 3L) {
+        x <- Rank(x)
+        if (!is.null(y)) 
+            y <- Rank(y)
+        .Call(C_cor, x, y, na.method, method == "kendall")
+    }
+\end{verbatim}
+
+\end{frame}
+
+
+\begin{frame}[fragile]{II: Wrap Up}
+
+<<gaw,size="tiny">>=
+getAnywhere('C_cov')
+@
+
+can be found in \textit{/src/library/stats/src/cov.c}
+
+\end{frame}
+
+\begin{frame}[fragile]{II: Calling C}
+
+\tiny{
+\noindent\rule{8cm}{0.4pt}
+\begin{verbatim}
+#include <R.h>
+#include <Rmath.h>
+void foo(int *a, double *b) {
+}
+--- C code here ---
+}
+\end{verbatim}
+\noindent\rule{8cm}{0.4pt}
+\begin{verbatim}
+system("R CMD SHLIB -o foo.so foo.c")
+\end{verbatim}
+\noindent\rule{8cm}{0.4pt}
+\begin{verbatim}
+dyn.load("Simple.so")
+\end{verbatim}
+\noindent\rule{8cm}{0.4pt}
+\begin{verbatim}
+CWrapper <- function(a,b){
+out <- .C("SimpleC",
+a= as.integer(a),
+b=as.double(b))
+)
+return(out)
+}
+\end{verbatim}
+}
+\noindent\rule{8cm}{0.4pt}
+
+\end{frame}
+
+\begin{frame}[fragile]{II: inline package}
+<<inclineC>>=
+require(inline)
+foo<-cfunction(c(a="numeric"),
+"
+SEXP result = PROTECT(allocVector(REALSXP,1));
+REAL(result)[0]=asReal(a) * asReal(a);
+UNPROTECT(1);
+
+return result;
+"
+)
+foo(4)
+@
+\end{frame}
+
+\end{document}
