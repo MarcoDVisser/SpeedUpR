@@ -26,7 +26,7 @@ Find all code examples from the S1 text in the folder /R or click [here](https:/
 As PLOS Computational Biology did not allows us to thank to anonymous reviewers in the above manuscript, I would like to thank them here. Their thoughtful comments and input were very valuable, and resulted in a superiour paper. We wish that PLOS would not take such a stance against gratitute.  
 
 # Workshop
-Supporting material from the EvoDemos 2015 workshop on code efficiency. 
+Supporting material from the EvoDemos & BES 2015 workshop on code efficiency. 
 
 ## Code
 Find all code exercises [here](https://github.com/MarcoDVisser/SpeedUpR/tree/master/R). 
