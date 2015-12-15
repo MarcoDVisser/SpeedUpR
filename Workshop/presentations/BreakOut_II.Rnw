@@ -1,0 +1,483 @@
+
+% Beamer slide for Speeding up R workshop 
+\documentclass{beamer}
+\usepackage{hyperref} % I want to add functioning url references,f and link within the doc.
+\usepackage{url}     % I want to ut urls in the text and dont want latex complaining
+\usepackage{mathtools}
+
+\usetheme{Montpellier}
+\usecolortheme{dolphin}
+
+\setbeamertemplate{navigation symbols}{} 
+
+% and the following four lines for debugging
+%\documentclass[12pt]{article}
+%\renewenvironment{frame}
+%{\Large \newpage}
+%{\phantom{X}}
+
+\begin{document}
+<<setup, include=FALSE>>=
+# smaller font size for chunks
+opts_chunk$set(size = 'footnotesize')
+@
+
+\title{Break out group II: extending R with C}
+\author{Caspar Hallmann \and Marco D. Visser \and Sean McMahon}
+
+\maketitle
+
+% when using knitr: 
+% use the option [fragile] for frames containing code output!
+
+\begin{frame}[fragile]{Goals}
+
+\begin{figure}
+\includegraphics[width=30mm]{realprogrammers.jpg}
+\end{figure}
+
+\begin{enumerate}
+\item Extending R with C
+\item Read and write (simple) C
+\item Call C from R
+\end{enumerate}
+\end{frame}
+
+\begin{frame}[fragile]{II: Extending R with C}
+	\large Resources
+	\small{http://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1004140}
+	\begin{enumerate}
+	\item .C interface (section 5) 
+	\item .Call interface (section 6.2)
+	\item SEXP (section 6.2.2)
+	\item PROTECT, UNPROTECT and gc() (sect. 6.2.2)
+	\item random number generation and other functions (sect. 6.2.3)
+	\end{enumerate}
+\end{frame}
+
+\begin{frame}[fragile]{Getting prepared}
+	\large What we need:
+	\begin{itemize}
+	\item Windows users need Rtools 
+	\begin{small} http://cran.r-project.org/bin/windows/Rtools/ \end{small}
+	\item Linux users:\\
+	\begin{verbatim} sudo apt-get update \end{verbatim}
+	\begin{verbatim}sudo apt-get install build-essential r-base-dev\end{verbatim}
+	\item Mac users:... not sure, but see\\
+	\emph{Xcode application} and \emph{Command Line Tools package}
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Getting prepared}
+	\large{Windows:}\\
+	PATH variables need to be set
+	\begin{itemize}
+	\item ...\textbackslash Rtools\textbackslash bin; 
+	\item...\textbackslash Rtools\textbackslash gcc-4.6.3\textbackslash bin;
+	\item ...\textbackslash R-3.1.0\textbackslash bin; 
+	\end{itemize}
+	where ... refers to the directories on your machine.\\
+	Install \emph{Rtools} as close as possible to the root, e.g. C:\textbackslash Rtools
+\end{frame}
+
+\begin{frame}[fragile]{R's interface to C}
+\begin{table}
+\begin{tabular}{cc}
+Function& Use today\\
+\hline
+.C() & Yes!\\
+.Call() &  Yep!\\
+.Interal & Nope\\
+.External & No\\
+\hline
+PACKAGES & \\
+inline & superficially\\
+Rcpp & Nope (but really cool)\\
+RcppArmadillo& (Even more cool)\\
+\end{tabular}
+\end{table}
+\end{frame}
+
+\begin{frame}[fragile]{Calling C workflow}
+\begin{enumerate}
+\item Write C code to a file (e.g myfunction.c)
+\item Compile c file
+\item load so/dll into R 
+\item construct a R-wrapper (optional)
+\item run program
+\end{enumerate}
+\end{frame}
+
+\begin{frame}[fragile]{A simple R program}
+	
+	Suppose you have R's SimpleR function for 
+	$a_i=\frac{N}{N+1}$
+
+	\begin{verbatim}
+	SimpleR<-function(N){
+	answer<-numeric(N)
+	for (i in 1:N) answer[i]<-N/(1+N)
+	return(answer)
+	}
+	\end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile]{A simple C program}
+	The equivalent in C is
+	
+	\begin{verbatim}
+		void SimpleC(int *nc, double *dnc, double *answerc) {
+			int n = nc[0];
+			double dn = dnc[0];
+			int i;
+			for (i=0; i<n; i++){
+			answerc[i] = (dn/(1+dn));
+			}
+		}
+	\end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile]{C code explained}
+What was in here?
+	\begin{itemize}
+	\item headers: \begin{verbatim} #include <stuff.h> \end{verbatim} 
+	\item commenting: "/* stuff for human eyes only */"
+	\item declarations: \emph{*int}, \emph{*double} ,\emph{*char}, etc
+	\item always end with semicolons ";"
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{C code explained}
+\begin{itemize}
+\item Everything needs to be declared
+	\begin{tabular}{ccc}
+	Rmode	&	C equivalent & example \\
+	\hline
+	integer & int & 0,1,2,...\\
+	numeric & double & 1.23, -45.1,...\\
+	character & char & "a", "h"\\
+	\end{tabular}
+\item Use 'pointers' (e.g. int *nc, double *dnc) to declare where the object is located in the memory (by R)
+\item Access content from pointers 
+\begin{verbatim} 
+int n = nc[0];
+double dn = dnc[0];
+\end{verbatim}
+\item Need to provide both "input" (nc,dnc) as well as "output" (answerc) 
+
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{C code explained}
+\texttt{for} loops
+\begin{verbatim}
+int i;
+for (i=0; i<n; i++){ 
+	answerc[i] = dn/(1+dn) 
+}
+\end{verbatim}
+\begin{itemize}
+\item Loops start with position 0, unlike in R.
+\item You can increment a variable by stating "++"  behind it, e.g. i++.
+\item setting values in variables with "[...]", as in R. 
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]{compiling C code}
+
+	Unlike R, you need to compile first!\\
+	\begin{verbatim} R CMD SHLIB SimpleC.so SimpleC.c\end{verbatim}
+	OR in windows\\
+	\begin{verbatim} R CMD SHLIB SimpleC.dll SimpleC.c\end{verbatim}
+	using\\
+	\begin{verbatim} system("R CMD SHLIB SimpleC.dll SimpleC.c")\end{verbatim}
+	in R.
+\end{frame}
+
+\begin{frame}[fragile]{calling C programn in R using .C}
+We can then use:\\
+\begin{verbatim}
+.C("SimpleC",nc = as.integer(N),
+dnc = as.double(N),answer = as.double(rep(0,N)))
+\end{verbatim}
+
+Or in a function like 
+\begin{verbatim}
+SimpleCWrapper <- function(N){
+out <- .C("SimpleC",
+	nc = as.integer(N),
+	dnc = as.double(N),
+	answer = as.double(rep(0,N))
+	)
+	return(out$answer)
+	}
+	\end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile]{}
+
+Run the whole lot as:\\
+
+\begin{verbatim}
+sink("Simple.c")
+## Send C code to this file with "cat"
+
+cat("
+void SimpleC(int *nc, double *dnc, double *answerc){
+
+int n = nc[0];
+double dn = dnc[0];
+int i;
+for (i=0; i<n; i++){
+answerc[i] = (dn/(1+dn));
+}
+
+}
+")
+sink(NULL)
+\end{verbatim}
+
+\end{frame}
+
+\begin{frame}[fragile]{}
+%\noindent\rule{8cm}{0.4pt}
+Run with
+<<sourcecode2,tidy=FALSE>>=
+system("R CMD SHLIB -o Simple.dll Simple.c")
+dyn.load("Simple.dll")
+SimpleCWrapper <- function(N){
+out <- .C("SimpleC",
+nc = as.integer(N),
+dnc = as.double(N),
+answer = as.double(rep(0,N))
+
+)
+return(out$answer)
+}
+@
+\end{frame}
+
+\begin{frame}
+\begin{figure}
+\includegraphics[width=50mm]{joke.jpg}
+\end{figure}
+\end{frame}
+
+
+\begin{frame}[fragile]{Benchmark}
+<<source3>>=
+system.time(Ranswers<-SimpleR(1e6))
+system.time(Canswers<-SimpleCWrapper(1e6))
+@
+\end{frame}
+
+
+\begin{frame}[fragile]{}
+\begin{itemize}
+\item
+\href{http://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1004140}{http://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1004140}
+\item try for yourself: .C interface (section 5)
+(+- 10 mins)
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]{the .Call interface}
+\begin{itemize}
+\item The .C interface is too simplistic 
+\item Only accepts vectors of integers or doubles\\
+\item Only produces vectors of integers or doubles\\
+\item We want to use R's objects such as \texttt{list} and \texttt{matrix}
+\end{itemize}
+SOLUTION:
+\begin{itemize}
+\item We can use them with .Call instead of .C function
+\item Drawback: C code more complicated
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{SEXP objects}
+R objects are called SEXP in C
+\begin{center}
+\begin{tabular}{ccc}
+\hline
+SEXP type & R mode & accessor\\
+\hline
+REALSXP& numeric vector & REAL(x)\\
+INTSXP& integer vector & INTEGER(x)\\
+LGLSXP& logical vector & LOGICAL(x)\\
+STRSXP& character vector & STRING\_ELT(x,index)\\
+VECSXP& list & VECTOR\_ELT(x,index)\\
+\hline
+\end{tabular}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]{}
+We can declare SEXP types eg as:
+\begin{verbatim}
+allocVector(x, index)
+allocMatrix
+\end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile]{Example Lotka model}
+\begin{equation}
+\frac{dx_1}{dt}=r_1x_1\left(1- \left( \frac{x_1+a_{12}x_2}{K} \right)\right)
+\end{equation}
+\begin{equation}
+\frac{dx_2}{dt}=r_2x_2\left(1- \left( \frac{x_1+a_{21}x_1}{K} \right)\right)
+\end{equation}
+\end{frame}
+
+\begin{frame}[fragile]{Example Lotka model (in R)}
+\begin{verbatim}
+MatrixLotka <- function(T = N, pop = population, am = alpha.means,
+as = alpha.sd, rm = r.means, rs = r.sd, K = CarryingCapacity) {
+r1 <- rnorm(T, rm[1], rs[1])
+a1 <- rnorm(T, am[1], as[1])
+r2 <- rnorm(T, rm[2], rs[2])
+a2 <- rnorm(T, am[2], as[2])
+for (i in 2:T) {
+pop[i, 1] <- pop[i - 1, 1] * r1[i] * (1 - (pop[i - 1, 1] +
+(a2[i] * pop[i - 1, 2]))/K)
+pop[i, 2] <- pop[i - 1, 2] * r2[i] * (1 - (pop[i - 1, 2] +
+(a1[i] * pop[i - 1, 1]))/K)
+}
+return(pop)
+}
+\end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile]{Example Lotka model (in C)}
+\tiny{
+\begin{verbatim}
+/*Stochastic Lotka example in C*/
+#include <R.h>
+#include <Rmath.h>
+#include <Rinternals.h>
+SEXP lotkac(SEXP time, SEXP alphamean, SEXP alphasd,
+SEXP rmean, SEXP rsd, SEXP K)
+{
+int n=length(time);
+int i;
+/* create new R objects in C. */
+SEXP P1, P2, result;
+/* protect and allocate R objects in C. */
+PROTECT(P1=allocVector(REALSXP,n));
+PROTECT(P2=allocVector(REALSXP,n));
+/* set list that returns results to R*/
+PROTECT(result = allocVector(VECSXP, 2));
+/* assign pointers to R objects */
+double *p1=REAL(P1);
+double *p2=REAL(P2);
+double *am=REAL(alphamean);
+double *as=REAL(alphasd);
+double *rm=REAL(rmean);
+double *rs=REAL(rsd);
+double *k=REAL(K);
+double R, A;
+/* set initial population sizes*/
+p2[0]=1.0;
+p1[0]=1.0;
+for(i=1; i<n; i++) {
+/* actual simulation, in which we update the random number generator*/
+GetRNGstate();
+R = rnorm(rm[0],rs[0]);
+PutRNGstate();
+GetRNGstate();
+A = rnorm(am[1],as[1]);
+PutRNGstate();
+p1[i] = p1[i-1] * R *(1-(p1[i-1]+(A*p2[i-1]))/k[0]);
+GetRNGstate();
+R = rnorm(rm[1],rs[1]);
+PutRNGstate();
+GetRNGstate();
+A = rnorm(am[0],as[0]);
+PutRNGstate();
+p2[i] = p2[i-1] * R *(1-(p2[i-1]+(A*p1[i-1]))/k[0]);
+}
+/* unprotect R objects in C. */
+SET_VECTOR_ELT(result, 0, P1);
+SET_VECTOR_ELT(result, 1, P2);
+UNPROTECT(3);
+return result;
+}
+\end{verbatim}
+}
+\end{frame}
+
+\begin{frame}[fragile]{PROTECT}
+\begin{itemize}
+\item R's internal GARBAGE COLLECTION
+\item Need to PROTECT objects from being wiped away
+\item e.g \begin{verbatim} PROTECT(P1=allocVector(REALSXP,n)); \end{verbatim}
+\item Need to UNPROTECT them at the end
+\item e.g \begin{verbatim} UNPROTECT(1); \end{verbatim}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Example .Call}
+\tiny{
+\begin{verbatim}
+system("R CMD SHLIB -o lotka.dll lotka.c")
+dyn.load("lotka.so")
+LotkaCWrapper<-function(time=1:N,alphamean=alpha.means,
+alphasd=alpha.sd,rmean=r.means,rsd=r.sd, K=CarryingCapacity)
+{
+out <- .Call("lotkac",
+time=as.double(time),
+alphamean=as.double(alphamean),
+alphasd=as.double(alphasd),
+rmean=as.double(rmean),
+rsd=as.double(rsd),
+K=as.double(K))
+return(out)
+}
+## reset seeds for simulations
+set.seed(1)
+#Set N to 10000 to compare with previous results
+N=10000
+#time the function
+LotkaCT<-system.time(
+ResultsC <- LotkaCWrapper()
+)[3]
+print(LotkaCT)
+\end{verbatim}
+}
+\end{frame}
+
+\begin{frame}[fragile]{}
+\begin{itemize}
+\item
+\tiny{\href{http://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1004140}{http://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1004140}}
+\item try for yourself: .C interface (section 6) (+- 10 mins)
+\item OR try own code
+
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{More advanced interface}
+\begin{figure}
+\includegraphics[width=30mm]{seamless.png}
+\end{figure}
+
+\begin{itemize}
+\item Rccp 
+\item Rccp ... addons
+\item see https://cran.r-project.org/package=Rcpp
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\large THE END
+\end{frame}
+
+\end{document}
+
+
+
+
+
+
